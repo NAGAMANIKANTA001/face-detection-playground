@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import * as faceapi from "face-api.js";
 import styles from "../styles.module.scss";
 
-const SSDMobileNet= ({ minConfidence, frequency }) => {
+const SSDMobileNet = ({ minConfidence, frequency }) => {
   const checkFrequency = frequency ?? 1000;
   const minimumConfidence = minConfidence ?? 0.5;
   const [videoStream, setVideoStream] = useState(null);
@@ -74,8 +74,8 @@ const SSDMobileNet= ({ minConfidence, frequency }) => {
   const createCanvas = () => {
     const video = videoPreviewRef.current;
     canvasRef.current = faceapi.createCanvasFromMedia(video);
-    canvasRef.current.width = video.width;
-    canvasRef.current.height = video.height;
+    canvasRef.current.width = video.clientWidth;
+    canvasRef.current.height = video.clientHeight;
     canvasRef.current.style.position = "absolute";
     canvasRef.current.style.top = video.offsetTop + "px";
     canvasRef.current.style.left = video.offsetLeft + "px";
@@ -86,6 +86,22 @@ const SSDMobileNet= ({ minConfidence, frequency }) => {
       height: video.clientHeight,
     });
   };
+  useEffect(() => {
+    screen.orientation.addEventListener("change", () => {
+      if (videoPreviewRef.current && canvasRef.current) {
+        console.log(
+          videoPreviewRef.current.offsetTop,
+          videoPreviewRef.current.offsetLeft
+        );
+        canvasRef.current.width = videoPreviewRef.current.clientWidth;
+        canvasRef.current.height = videoPreviewRef.current.clientHeight;
+        canvasRef.current.style.top = videoPreviewRef.current.offsetTop + "px";
+        canvasRef.current.style.left =
+          videoPreviewRef.current.offsetLeft + "px";
+      }
+      console.log("Setting canvas width and height...");
+    });
+  }, []);
   useEffect(() => {
     const startMonitoring = async () => {
       closeAllCanvases();

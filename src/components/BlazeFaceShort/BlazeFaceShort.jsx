@@ -110,6 +110,24 @@ const BlazeFaceShort = ({ minConfidence, frequency }) => {
     closeAllCanvases();
     document.body.append(canvasRef.current);
   };
+
+  useEffect(() => {
+    screen.orientation.addEventListener("change", () => {
+      if (videoPreviewRef.current && canvasRef.current) {
+        console.log(
+          videoPreviewRef.current.offsetTop,
+          videoPreviewRef.current.offsetLeft
+        );
+        canvasRef.current.width = videoPreviewRef.current.clientWidth;
+        canvasRef.current.height = videoPreviewRef.current.clientHeight;
+        canvasRef.current.style.top = videoPreviewRef.current.offsetTop + "px";
+        canvasRef.current.style.left =
+          videoPreviewRef.current.offsetLeft + "px";
+      }
+      console.log("Setting canvas width and height...");
+    });
+  }, []);
+
   useEffect(() => {
     const startMonitoring = async () => {
       const video = videoPreviewRef.current;

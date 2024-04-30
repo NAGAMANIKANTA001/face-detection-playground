@@ -66,32 +66,54 @@ const TinyDetector = ({ minConfidence, frequency }) => {
   };
   const closeAllCanvases = () => {
     const previousCanvases = document.querySelectorAll("canvas");
-    console.log("Previous canvases:", previousCanvases);
     previousCanvases.forEach((canvas) => {
       canvas.remove();
     });
-  }
+  };
   const createCanvas = () => {
-        const video = videoPreviewRef.current;
-        canvasRef.current = faceapi.createCanvasFromMedia(video);
-        canvasRef.current.width = video.width;
-        canvasRef.current.height = video.height;
-        canvasRef.current.style.position = "absolute";
-        canvasRef.current.style.top = video.offsetTop + "px";
-        canvasRef.current.style.left = video.offsetLeft + "px";
-        closeAllCanvases();
-        document.body.append(canvasRef.current);
-        faceapi.matchDimensions(canvasRef.current, {
-          width: video.clientWidth,
-          height: video.clientHeight,
-        });
+    const video = videoPreviewRef.current;
+    console.log("clientWidth", video.clientWidth);
+    console.log("clientHeight", video.clientHeight);
+    console.log("videoWidth", video.videoWidth);
+    console.log("videoHeight", video.videoHeight);
+    canvasRef.current = faceapi.createCanvasFromMedia(video);
+    canvasRef.current.width = video.clientWidth;
+    canvasRef.current.height = video.clientHeight;
+    canvasRef.current.style.position = "absolute";
+    canvasRef.current.style.float = "center";
+    canvasRef.current.style.top = video.offsetTop + "px";
+    canvasRef.current.style.left = video.offsetLeft + "px";
+    console.log(video.offsetTop, video.offsetLeft);
+    closeAllCanvases();
+    document.body.append(canvasRef.current);
+    faceapi.matchDimensions(canvasRef.current, {
+      width: video.clientWidth,
+      height: video.clientHeight,
+    });
+  };
+  useEffect(() => {
+    screen.orientation.addEventListener("change", () => {
+      if (videoPreviewRef.current && canvasRef.current) {
+        console.log(
+          videoPreviewRef.current.offsetTop,
+          videoPreviewRef.current.offsetLeft
+        );
+        canvasRef.current.width = videoPreviewRef.current.clientWidth;
+        canvasRef.current.height = videoPreviewRef.current.clientHeight;
+        canvasRef.current.style.top = videoPreviewRef.current.offsetTop + "px";
+        canvasRef.current.style.left =
+          videoPreviewRef.current.offsetLeft + "px";
       }
+      console.log("Setting canvas width and height...");
+    });
+  }, []);
+
   useEffect(() => {
     const startMonitoring = async () => {
       closeAllCanvases();
       await monitor();
       const video = videoPreviewRef.current;
-      if (!video) { 
+      if (!video) {
         return;
       }
       video.addEventListener("loadeddata", createCanvas);
@@ -107,10 +129,10 @@ const TinyDetector = ({ minConfidence, frequency }) => {
       clearInterval(intervalRef.current);
       const video = videoPreviewRef.current;
       if (video) {
-        video.removeEventListener("loadeddata",createCanvas);
+        video.removeEventListener("loadeddata", createCanvas);
       }
     };
-  }, [minConfidence,checkFrequency]);
+  }, [minConfidence, checkFrequency]);
 
   return (
     <>
