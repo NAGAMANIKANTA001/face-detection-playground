@@ -2,44 +2,77 @@ import React, { useState, useRef, useEffect } from "react";
 import { FaceDetector, FilesetResolver } from "@mediapipe/tasks-vision";
 import styles from "../styles.module.scss";
 
-const BlazeFaceShort = () => {
+const BlazeFaceShort = ({ minConfidence, frequency }) => {
+  const checkFrequency = frequency ?? 1000;
+  const minimumConfidence = minConfidence ?? 0.5;
   const [videoStream, setVideoStream] = useState(null);
-    const videoPreviewRef = useRef(null);
-    const blazeFaceShortRangeModel = useRef(null);
+  const videoPreviewRef = useRef(null);
+  const intervalRef = useRef(null);
+  const canvasRef = useRef(null);
+  const blazeFaceShortRangeModel = useRef(null);
   const [faceCount, setFaceCount] = useState(0);
 
   const loadFaceDetectionModels = async () => {
     console.log("Loading blaze face short model...");
-    const vision = await FilesetResolver.forVisionTasks("/wasm/tasks-vision/short-range");
+    const vision = await FilesetResolver.forVisionTasks(
+      "/wasm/tasks-vision/short-range"
+    );
     const faceDetector = await FaceDetector.createFromOptions(vision, {
       baseOptions: {
         modelAssetPath: "/models/blazeFace/blaze_face_short_range.tflite",
         delegate: "GPU",
       },
       runningMode: "IMAGE",
+      minDetectionConfidence: minimumConfidence,
     });
     blazeFaceShortRangeModel.current = faceDetector;
     console.log("Blaze face short model is loaded.");
   };
 
   const detectWithBlazeFaceShortRange = async (canvas) => {
-    return await blazeFaceShortRangeModel.current.detect(canvas)
+    console.log(
+      "Detecting with blaze face short range model...",
+      checkFrequency
+    );
+    return await blazeFaceShortRangeModel.current.detect(canvas);
   };
 
+  const drawBoundingBoxes = (canvas, faces) => {
+    const context = canvas.getContext("2d");
+    faces.forEach((detection) => {
+      const { originX, originY, width, height } = detection.boundingBox;
+      context.strokeStyle = "red";
+      context.lineWidth = 2;
+      context.beginPath();
+      context.rect(originX, originY, width, height);
+      context.stroke();
+      context.fillStyle = "red";
+      context.font = "12px Arial";
+      context.fillText(
+        `Score: ${detection.categories[0].score.toFixed(2)}`,
+        originX,
+        originY - 5
+      );
+    });
+  };
 
   const detectFace = async () => {
-    if (!videoPreviewRef.current.srcObject) {
+    if (!videoPreviewRef.current.srcObject || !canvasRef.current) {
       console.error("No video stream found.");
       return;
     }
     const video = videoPreviewRef.current;
-    const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const context = canvas.getContext("2d");
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    let faces = await detectWithBlazeFaceShortRange(canvas);
+    const context = canvasRef.current.getContext("2d");
+    context.drawImage(
+      video,
+      0,
+      0,
+      canvasRef.current.width,
+      canvasRef.current.height
+    );
+    let faces = await detectWithBlazeFaceShortRange(canvasRef.current);
     console.log("Blaze face", faces);
+    drawBoundingBoxes(canvasRef.current, faces.detections);
     setFaceCount(faces.detections.length);
   };
   const monitor = async () => {
@@ -59,19 +92,45 @@ const BlazeFaceShort = () => {
       console.error("Error monitoring face:", error);
     }
   };
+  const closeAllCanvases = () => {
+    const previousCanvases = document.querySelectorAll("canvas");
+    console.log("Previous canvases:", previousCanvases);
+    previousCanvases.forEach((canvas) => {
+      canvas.remove();
+    });
+  };
+  const createCanvas = () => {
+    const video = videoPreviewRef.current;
+    canvasRef.current = document.createElement("canvas");
+    canvasRef.current.width = video.clientWidth;
+    canvasRef.current.height = video.clientHeight;
+    canvasRef.current.style.position = "absolute";
+    canvasRef.current.style.top = video.offsetTop + "px";
+    canvasRef.current.style.left = video.offsetLeft + "px";
+    closeAllCanvases();
+    document.body.append(canvasRef.current);
+  };
   useEffect(() => {
-    let intervalRef = null;
     const startMonitoring = async () => {
+      const video = videoPreviewRef.current;
+      closeAllCanvases();
+      video.addEventListener("loadeddata", createCanvas);
       await monitor();
-      intervalRef = setInterval(() => {
+      clearInterval(intervalRef.current);
+      intervalRef.current = setInterval(() => {
         detectFace();
-      }, 1000);
+      }, checkFrequency);
     };
     startMonitoring();
     return () => {
-      clearInterval(intervalRef);
+      closeAllCanvases();
+      clearInterval(intervalRef.current);
+      const video = videoPreviewRef.current;
+      if (video) {
+        video.removeEventListener("loadeddata", createCanvas);
+      }
     };
-  }, []);
+  }, [frequency, minConfidence]);
 
   return (
     <>
