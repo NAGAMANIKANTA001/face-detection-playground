@@ -4,6 +4,7 @@ import TinyDetector from "../TinyFaceDetector/TinyDetector";
 import BlazeFaceShort from "../BlazeFaceShort/BlazeFaceShort";
 import BlazeFaceFullRangeSparse from "../BlazeFaceFullRangeSparse/BlazeFaceFullSparse";
 import SsdMobileNet from "../SSDMobileNet/SSDMobileNet";
+import TinyBlaze from "../TinyBlaze/TinyBlaze";
 
 const DetectFace = () => {
   const [minConfidence, setMinConfidence] = useState(() => {
@@ -111,6 +112,9 @@ const DetectFace = () => {
       )}
       {selectedModel === Models.ssdMobileNet && (
         <SsdMobileNet minConfidence={minConfidence} frequency={frequency} />
+      )}
+      {selectedModel === Models.tinyBlaze && (
+        <TinyBlaze minConfidence={minConfidence} frequency={frequency} />
       )}
       {selectedModel === Models.blazeFaceFullRangeSparse && (
         <BlazeFaceFullRangeSparse />
